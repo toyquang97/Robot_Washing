@@ -4,8 +4,8 @@
 #include "stm32f10x_usart.h"
 #include "string.h"
 
-#define Max_RXBuffer_Size 	8
-#define _UART_PORT 4
+
+#define _UART_PORT 1
 
 #if _UART_PORT == 1
 	#define UART_PORT         USART1
@@ -41,12 +41,7 @@
 
 
 #define HEX_CHARS      "0123456789ABCDEF"
-extern RCC_ClocksTypeDef RCC_ClockFreq;
-extern GPIO_InitTypeDef GPIO_InitStructure;
-extern RCC_ClocksTypeDef RCC_ClockFreq;
-extern USART_InitTypeDef UART;
-extern uint8_t RX_Buffer[Max_RXBuffer_Size];
-extern volatile int uart_flag;
+
 
 void UART_Init(uint32_t baudrate);
 

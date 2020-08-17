@@ -5,8 +5,10 @@
 #include "stm32f10x_rcc.h"
 #include "stm32f10x_gpio.h"
 #include "stm32f10x_tim.h"
+#include "stm32f10x_usart.h"
 
-#define Tim_PWM_Freq_Out	2560000
+#include "math.h"
+#define Tim_PWM_Freq_Out	250000
 #define TIM_PWM_MOTOR_0		TIM5
 #define TIM_PWM_MOTOR_1		TIM3
 #define MAX_SPEED 				50
@@ -19,6 +21,7 @@
 #define ENA1_GPIO_Port GPIOC
 #define ENB1_Pin GPIO_Pin_3
 #define ENB1_GPIO_Port GPIOC
+
 #define INA1_Pin GPIO_Pin_7
 #define INA1_GPIO_Port GPIOC
 #define INB1_Pin GPIO_Pin_8
@@ -31,6 +34,7 @@
 
 #define PWM0_Pin GPIO_Pin_0
 #define PWM0_GPIO_Port GPIOA
+
 #define PWM1_Pin GPIO_Pin_6
 #define PWM1_GPIO_Port GPIOC
 

@@ -108,11 +108,11 @@
  #define SYSCLK_FREQ_24MHz  24000000
 #else
 /* #define SYSCLK_FREQ_HSE    HSE_VALUE */
-/* #define SYSCLK_FREQ_24MHz  24000000 */ 
+#define SYSCLK_FREQ_24MHz  24000000  
 /* #define SYSCLK_FREQ_36MHz  36000000 */
 /* #define SYSCLK_FREQ_48MHz  48000000 */
 /* #define SYSCLK_FREQ_56MHz  56000000 */
-#define SYSCLK_FREQ_72MHz  72000000
+/* #define SYSCLK_FREQ_72MHz  72000000 */
 #endif
 
 /*!< Uncomment the following line if you need to use external SRAM mounted
@@ -670,6 +670,7 @@ static void SetSysClockTo24(void)
   else
   { /* If HSE fails to start-up, the application will have wrong clock 
          configuration. User can add here some code to deal with this error */
+		
   } 
 }
 #elif defined SYSCLK_FREQ_36MHz
@@ -1076,6 +1077,8 @@ static void SetSysClockTo72(void)
   else
   { /* If HSE fails to start-up, the application will have wrong clock 
          configuration. User can add here some code to deal with this error */
+		while(1){
+		}
   }
 }
 #endif

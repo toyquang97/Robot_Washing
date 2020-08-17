@@ -33,4 +33,4 @@
   C:\Users\ASUS\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.3.0\Device\StdPeriph_Driver\inc\stm32f10x_usart.h \
   C:\Users\ASUS\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.3.0\Device\StdPeriph_Driver\inc\stm32f10x_wwdg.h \
   C:\Users\ASUS\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.3.0\Device\StdPeriph_Driver\inc\misc.h \
-  driver_motor.h
+  driver_motor.h uart.h C:\Keil_v5\ARM\ARMCLANG\Bin\..\include\string.h

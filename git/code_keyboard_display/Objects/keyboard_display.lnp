@@ -2,6 +2,7 @@
 ".\objects\main.o"
 ".\objects\driver_motor.o"
 ".\objects\delay.o"
+".\objects\uart.o"
 ".\objects\misc.o"
 ".\objects\stm32f10x_adc.o"
 ".\objects\stm32f10x_bkp.o"

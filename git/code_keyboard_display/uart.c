@@ -2,7 +2,7 @@
 
 
 void UART_Init(uint32_t baudrate) {
-	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_InitTypeDef PORT;
 
 	// U(S)ART init
 #if _UART_PORT == 1
@@ -21,17 +21,16 @@ void UART_Init(uint32_t baudrate) {
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART5,ENABLE);
 #endif
 
-	GPIO_InitStructure.GPIO_Pin = UART_TX_PIN;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP; // TX as AF with Push-Pull
-	GPIO_Init(UART_GPIO_PORT_TX,&GPIO_InitStructure);
-	
-	GPIO_InitStructure.GPIO_Pin = UART_RX_PIN;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING; // RX as in without pull-up
-	GPIO_Init(UART_GPIO_PORT_RX,&GPIO_InitStructure);
+	PORT.GPIO_Pin = UART_TX_PIN;
+	PORT.GPIO_Speed = GPIO_Speed_50MHz;
+	PORT.GPIO_Mode = GPIO_Mode_AF_PP; // TX as AF with Push-Pull
+	GPIO_Init(UART_GPIO_PORT_TX,&PORT);
+	PORT.GPIO_Pin = UART_RX_PIN;
+	PORT.GPIO_Speed = GPIO_Speed_50MHz;
+	PORT.GPIO_Mode = GPIO_Mode_IN_FLOATING; // RX as in without pull-up
+	GPIO_Init(UART_GPIO_PORT_RX,&PORT);
 
-
+	USART_InitTypeDef UART;
 	UART.USART_BaudRate = baudrate;
 	UART.USART_HardwareFlowControl = USART_HardwareFlowControl_None; // No flow control
 	UART.USART_Mode = USART_Mode_Rx | USART_Mode_Tx; // RX+TX mode
@@ -39,31 +38,11 @@ void UART_Init(uint32_t baudrate) {
 	UART.USART_Parity = USART_Parity_No; // No parity check
 	UART.USART_StopBits = USART_StopBits_1; // 1 stop bit
 	USART_Init(UART_PORT,&UART);
-	
-	//enable for UART interrupt
+	//ENABLE receive interrupt
 	USART_ITConfig(UART_PORT,USART_IT_RXNE,ENABLE);
-	NVIC_EnableIRQ(UART4_IRQn);
-	//
 	USART_Cmd(UART_PORT,ENABLE);
 	
-}
-/**/
-
-void UART4_IRQHandler(void){
-	static int count = 0;
-	int i = 0;
 	
-	if(USART_GetITStatus(UART_PORT,USART_IT_RXNE)!=RESET){
-		uart_flag = 1;
-		RX_Buffer[count] = USART_ReceiveData(UART_PORT); 
-		count++;
-		if(count == Max_RXBuffer_Size){
-			count = 0;
-			UART_SendStr("\t Done \t");
-		}
-		USART_ITConfig(UART_PORT,USART_IT_RXNE,ENABLE);
-		
-	}
 }
 
 void UART_SendChar(char ch) {
