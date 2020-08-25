@@ -23,6 +23,7 @@
 #include "stm32f1xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "usart.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -56,9 +57,14 @@
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
-
+extern TIM_HandleTypeDef htim2;
+extern UART_HandleTypeDef huart4;
 /* USER CODE BEGIN EV */
-
+extern uint8_t sensor;
+extern int status ;							
+extern volatile int Target_Speed ;						//bien gia tri van toc duoc cap cho toc do robot
+extern volatile int Real_Speed ;						//bien gia tri van toc duoc cap cho toc do robot
+extern volatile int Pre_Speed;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -198,15 +204,57 @@ void SysTick_Handler(void)
 /******************************************************************************/
 
 /**
+  * @brief This function handles TIM2 global interrupt.
+  */
+void TIM2_IRQHandler(void)
+{
+  /* USER CODE BEGIN TIM2_IRQn 0 */
+	
+  /* USER CODE END TIM2_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim2);
+  /* USER CODE BEGIN TIM2_IRQn 1 */
+
+  /* USER CODE END TIM2_IRQn 1 */
+}
+
+/**
   * @brief This function handles EXTI line[15:10] interrupts.
   */
 void EXTI15_10_IRQHandler(void)
 {
   /* USER CODE BEGIN EXTI15_10_IRQn 0 */
-
+	//when detect stop button
+	if(__HAL_GPIO_EXTI_GET_IT(STOP_Pin)){
+		UART_SendStr("\nStop");
+		//status = 0;
+		if(status !=0){
+			Pre_Speed = Target_Speed;
+			Target_Speed = 0;
+		}
+	}
+	//when detect forward button
+	if(__HAL_GPIO_EXTI_GET_IT(FORWARD_Pin)){
+		if(status != 0){
+				UART_SendStr("\nforward"); 
+				if(Target_Speed < 0)
+					Target_Speed = -Target_Speed;
+				status = 2;
+			
+		}
+	}
+	//when detect backward button
+	if(__HAL_GPIO_EXTI_GET_IT(BACKWARD_Pin)){
+		if(status != 0){
+			UART_SendStr("\nbackward");
+		
+				if(Target_Speed > 0)
+					Target_Speed = -Target_Speed;
+				status = 3;
+			
+		}
+	}
+		//sensor s5
   /* USER CODE END EXTI15_10_IRQn 0 */
-  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_10);
-  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_11);
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_12);
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_13);
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_14);
@@ -214,6 +262,20 @@ void EXTI15_10_IRQHandler(void)
   /* USER CODE BEGIN EXTI15_10_IRQn 1 */
 
   /* USER CODE END EXTI15_10_IRQn 1 */
+}
+
+/**
+  * @brief This function handles UART4 global interrupt.
+  */
+void UART4_IRQHandler(void)
+{
+  /* USER CODE BEGIN UART4_IRQn 0 */
+	
+  /* USER CODE END UART4_IRQn 0 */
+  HAL_UART_IRQHandler(&huart4);
+  /* USER CODE BEGIN UART4_IRQn 1 */
+
+  /* USER CODE END UART4_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */

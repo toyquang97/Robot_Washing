@@ -29,6 +29,12 @@ GPIO_InitTypeDef GPIO_InitStructure;
 RCC_ClocksTypeDef RCC_ClockFreq;
 ErrorStatus HSEStartUpStatus;
 static __IO uint32_t TimingDelay;
+// Keyboard variables
+uint32_t keys_debounce = 0; // Debounce counter for keyboard
+uint32_t keys_last     = 0; // Previous keys state
+uint32_t keys_ready    = 1; // Is keyboard readings updated?
+uint16_t keys_pressed  = 0; // Pressed keys
+uint32_t keys_lkp      = 0; // For readings update detection
 
 int col = 0;
 int row = -1;
@@ -54,7 +60,7 @@ uint8_t key_released[4][4] = {{0},{0},{0},{0}};
 RCC_ClocksTypeDef RCC_ClockFreq;
 TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
 TIM_OCInitTypeDef  TIM_OCInitStructure;
-
+NVIC_InitTypeDef NVIC_InitStructure;
 /* Private function prototypes -----------------------------------------------*/
 void NVIC_Configuration(void);
 void Delay(__IO uint32_t nTime);
@@ -62,6 +68,9 @@ void TimingDelay_Decrement(void);
 
 void update_sample(int row);
 void update_key_press();
+char get_char_key();
+int get_key_pressed();
+
 /* Private configuration -------------------------------------------------------------*/
 void GPIO_Config();
 void TIM3_Init();		//this timer take response to scan all input
@@ -70,6 +79,36 @@ void SysTick_Handler(){
 	TimingDelay_Decrement();
 }
 
+void TIM3_IRQHandler(){
+
+	int current_low = -1;
+	
+	if(GPIOB->IDR&GPIO_IDR_IDR4){
+		current_low = 0;
+	}
+	
+	if(GPIOB->IDR&GPIO_IDR_IDR5){
+		current_low = 1;
+	}
+	
+	if(GPIOB->IDR&GPIO_IDR_IDR6){
+		current_low = 2;
+	}
+	
+	if(GPIOB->IDR&GPIO_IDR_IDR7){
+		current_low = 3;
+	}
+	
+	update_sample(current_low);
+	update_key_press();
+	col++;
+	if(col >3){
+		col = 0;
+	}
+	
+	GPIOA->ODR = 1<<col;
+	TIM3->SR &=~TIM_SR_UIF;
+}
 
 /**/
 
@@ -92,8 +131,8 @@ int main(){
 	NVIC_Configuration();
 	
 	/*GPIO Configuration*/
-	//GPIO_Config();
-	
+	GPIO_Config();
+	TIM3_Init();
 	/*Uart Configuration*/
 	UART_Init(115200);
 	UART_SendStr("Hello World!");
@@ -110,15 +149,7 @@ int main(){
 	GPIO_Init(GPIOA,&GPIO_InitStructure);
 	//GPIOA->CRL |= (0b1011<<0);
 	
-	RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
-	TIM3->CR1 |= TIM_CR1_ARPE;
-	TIM3->PSC = 7;
-	TIM3->ARR = 1000;
-	TIM3->CCR1 = 250;
-	TIM3->CCMR1 |= TIM_CCMR1_OC1PE | TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1M_1;
-	TIM3->CCER |= TIM_CCER_CC1E;
-	TIM3->EGR |= (1<<0);
-	TIM3->CR1 |= (1<<0);
+
 	
 	/*
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA|RCC_APB2Periph_AFIO,ENABLE);
@@ -156,7 +187,6 @@ int main(){
 	}
 	//driver_init();
 	//driver_run(20);
-	
 	int count;
 	while(1){
 			if(USART_GetFlagStatus(USART1,USART_FLAG_RXNE)==SET){
@@ -170,13 +200,14 @@ int main(){
 
 */
 void NVIC_Configuration(void){
-	NVIC_InitTypeDef NVIC_InitStructure;
+
   /* Enable and configure RCC global IRQ channel */
 	NVIC_InitStructure.NVIC_IRQChannel = RCC_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
+	
 }
 
 /*
@@ -211,12 +242,24 @@ void GPIO_Config(){
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
 	GPIO_Init(GPIOA,&GPIO_InitStructure);
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPD;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4 | GPIO_Pin_5 | GPIO_Pin_6 | GPIO_Pin_7;
 	GPIO_Init(GPIOA,&GPIO_InitStructure);
+	
 }
 /*
 	Timer 3 initilization
 */
-
+void TIM3_Init(void){
+	RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
+	RCC_GetClocksFreq(&RCC_ClockFreq);
+	TIM3->CR1 |= TIM_CR1_ARPE;
+	TIM3->PSC = RCC_ClockFreq.PCLK1_Frequency/1000;
+	TIM3->ARR = 999;
+	TIM3->DIER |= TIM_DIER_UIE;
+	TIM3->EGR |= TIM_EGR_UG;
+	TIM3->CR1 |= TIM_CR1_CEN;	
+	NVIC_EnableIRQ(TIM3_IRQn);
+}
 
 /*
 keypad function
@@ -250,6 +293,34 @@ void update_key_press(){
 			}
 		}
 	}
+}
+
+char get_char_key(){
+	for(int i = 0; i < 4;i++){
+		for(int j = 0; j < 4; j++){
+			if(key_released[i][j] == 1 && key_pressed[i][j] == 1){
+					key_released[i][j] = 0;
+					key_pressed[i][j] = 0;
+					return char_array[i][j];
+			}
+		}
+	}
+	
+	return '\0';
+}
+
+int get_key_pressed(){
+	for(int i = 0; i < 4; i++) {
+		for(int j = 0; j < 4; j++) {
+			if(key_released[i][j] == 1 && key_pressed[i][j] == 1) {
+				key_released[i][j] = 0;
+				key_pressed[i][j] = 0;
+				return int_array[i][j];
+			}
+		}
+	}
+
+	return -1;
 }
 #ifdef  USE_FULL_ASSERT
 

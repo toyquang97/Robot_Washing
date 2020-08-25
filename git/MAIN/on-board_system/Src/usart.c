@@ -72,6 +72,9 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
+    /* UART4 interrupt Init */
+    HAL_NVIC_SetPriority(UART4_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(UART4_IRQn);
   /* USER CODE BEGIN UART4_MspInit 1 */
 
   /* USER CODE END UART4_MspInit 1 */
@@ -95,6 +98,8 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
     */
     HAL_GPIO_DeInit(GPIOC, GPIO_PIN_10|GPIO_PIN_11);
 
+    /* UART4 interrupt Deinit */
+    HAL_NVIC_DisableIRQ(UART4_IRQn);
   /* USER CODE BEGIN UART4_MspDeInit 1 */
 
   /* USER CODE END UART4_MspDeInit 1 */
@@ -102,7 +107,26 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
 } 
 
 /* USER CODE BEGIN 1 */
+void UART_SendChar(char ch[]){
+	HAL_UART_Transmit(&huart4,(uint8_t*)ch,1,10);
+}
+void UART_SendStr(char str[]){
+	HAL_UART_Transmit(&huart4,(uint8_t*)str,strlen(str),10);
+}
 
+void UART_SendInt(int32_t num){
+	char str[10];
+	char temp[2];
+	int i = 0;
+	if(num < 0){
+		temp[0] = '-';
+		HAL_UART_Transmit(&huart4,(uint8_t*)temp,1,10);
+		num *= -1;
+	}
+	do {str[i++] = num * 10 + '0';}
+	while((num/=10)>0);
+	HAL_UART_Transmit(&huart4,(uint8_t*)str,strlen(str),10);
+}
 /* USER CODE END 1 */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

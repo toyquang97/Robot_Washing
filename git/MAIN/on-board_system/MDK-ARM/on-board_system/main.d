@@ -28,7 +28,12 @@ on-board_system\main.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_spi.h
 on-board_system\main.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_tim.h
 on-board_system\main.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_tim_ex.h
 on-board_system\main.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h
+on-board_system\main.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\string.h
 on-board_system\main.o: ../Inc/spi.h
 on-board_system\main.o: ../Inc/tim.h
 on-board_system\main.o: ../Inc/usart.h
 on-board_system\main.o: ../Inc/gpio.h
+on-board_system\main.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
+on-board_system\main.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdlib.h
+on-board_system\main.o: ../Src/driver_motor.h
+on-board_system\main.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\math.h

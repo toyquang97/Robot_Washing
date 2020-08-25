@@ -6,20 +6,20 @@
 #include "driver_motor.h"
 /* Private macro -------------------------------------------------------------*/
 
-/* Private variables ---------------------------------------------------------*/
 
-ErrorStatus HSEStartUpStatus;
+/* Private variables ---------------------------------------------------------*/
 static __IO uint32_t TimingDelay;
 volatile int Real_Vel = 0;
 volatile int temp = 0;
 int Velocity = 0;
+volatile uint8_t sensor = 0b00000000;
 uint8_t RX_Buffer[Max_RXBuffer_Size];
 volatile int uart_flag = 0;
 RCC_ClocksTypeDef RCC_ClockFreq;
 GPIO_InitTypeDef GPIO_InitStructure;
 RCC_ClocksTypeDef RCC_ClockFreq;
 EXTI_InitTypeDef EXTI_InitStructure;
-NVIC_InitTypeDef NVIC_InitStructure;
+
 TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
 TIM_OCInitTypeDef  TIM_OCInitStructure;
 USART_InitTypeDef UART;
@@ -29,7 +29,6 @@ void NVIC_Configuration(void);
 void Delay(__IO uint32_t nTime);
 void TimingDelay_Decrement(void);
 void TIM2_Init(void);
-/* Private configuration -------------------------------------------------------------*/
 void GPIO_Config();
 
 /*interrupt handler*/
@@ -41,17 +40,58 @@ void SysTick_Handler(){
 void EXTI15_10_IRQHandler(void){
 	if(EXTI_GetITStatus(EXTI_Line13)!=RESET){
 		Real_Vel = 0;
+		temp = 0;
 		EXTI_ClearITPendingBit(EXTI_Line13);
+	}
+	if(EXTI_GetITStatus(EXTI_Line14)==SET){
+		temp = 2;
+		EXTI_ClearITPendingBit(EXTI_Line14);
+	}
+	if(EXTI_GetITStatus(EXTI_Line15)==SET){
+		temp = 3;
+		EXTI_ClearITPendingBit(EXTI_Line15);
+	}
+	
+	if(EXTI_GetITStatus(EXTI_Line10)==SET){
+		sensor ^= (1<<0);
+		GPIOB->ODR ^= (1<<4);
+		EXTI_ClearITPendingBit(EXTI_Line10);
+	}
+	
+}
+//sensor S1
+void EXTI0_IRQHandler(void){
+	if(EXTI_GetITStatus(EXTI_Line0)==SET){
+		sensor ^= (1<<3);
+		GPIOC->ODR ^= (1<<4);
+		EXTI_ClearITPendingBit(EXTI_Line0);
+	}
+}
+
+void EXTI1_IRQHandler(void){
+	if(EXTI_GetITStatus(EXTI_Line1)==SET){
+		sensor ^= (1<<2);
+		EXTI_ClearITPendingBit(EXTI_Line1);
+	}
+}
+void EXTI2_IRQHandler(void){
+	if(EXTI_GetITStatus(EXTI_Line2)==SET){
+		sensor ^= (1<<1);
+		EXTI_ClearITPendingBit(EXTI_Line2);
 	}
 }
 
 void TIM2_IRQHandler(void){
 	if(TIM2->SR&TIM_SR_UIF){
-		//GPIOC->ODR^=(1<<4);
-		Real_Vel++;
-		if(Real_Vel > Velocity){
+		if(Real_Vel < Velocity){
+			Real_Vel++;
+		}
+		else if(Real_Vel == Velocity){
 			Real_Vel = Velocity;
 			TIM2->CR1 &= ~TIM_CR1_CEN;
+		}
+		else{
+			Real_Vel--;
 		}
 		TIM2->SR&=~TIM_SR_UIF;
 		
@@ -79,8 +119,8 @@ int main(){
 	/*GPIO Configuration*/
 	GPIO_Config();
 	/*NVIC Configuration*/
-	
 	NVIC_Configuration();
+	
 	TIM2_Init();
 
 	
@@ -96,19 +136,16 @@ int main(){
 	}
 	/*configuration for driver*/
 	driver_init();
-//	
-
-	
 	int Pre_Vel = 0;
 	int i = 0;
 	Velocity = 0;
-	driver_run(0);
+	driver_run(10);
 	while(1){
 		if(GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_12)==1){
 			Delay(20);
 			while(GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_12));
 			UART_SendStr("Start\n");
-			TIM2->CR1 |= TIM_CR1_CEN;
+			sensor = 0b00001111;
 			temp = 1;
 		}
 		else{
@@ -118,12 +155,15 @@ int main(){
 				Pre_Vel = Real_Vel;
 			}
 
-			if(temp==1){
-
-				driver_run(Real_Vel);
-				//driver_run(0);
+			if(temp > 1){
+				if(temp == 2 ){
+						
+				}
+				if(temp == 3){
+					
+				}
 				
-			}
+				
 		}
 			/**/
 			if(uart_flag == 1){
@@ -136,25 +176,20 @@ int main(){
 				}
 				uart_flag = 0;
 			}
-	}
+		}
 	
+	}
 }
 
 
-/**/
-
-/*
-
-*/
 void NVIC_Configuration(void){
+	NVIC_InitTypeDef NVIC_InitStructure;
   /* Enable and configure RCC global IRQ channel */
 	NVIC_InitStructure.NVIC_IRQChannel = RCC_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
-
-	
 }
 
 /*
@@ -179,20 +214,29 @@ void TimingDelay_Decrement(void)
 
 void GPIO_Config(){
 	
-	/*Initialize for  button*/
+	/*Initialize for  button,Sensors*/
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB,ENABLE);
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO,ENABLE);
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Pin_12 | GPIO_Pin_13 | GPIO_Pin_14 | GPIO_Pin_15;
+																		//START				//STOP				//FWD				//BWD					
+	GPIO_InitStructure.GPIO_Mode = GPIO_Pin_12 | GPIO_Pin_13 | GPIO_Pin_14 | GPIO_Pin_15 
+			//S1				//S2					//S3						//S4
+	| GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2 | GPIO_Pin_10;
 	GPIO_Init(GPIOB,&GPIO_InitStructure);
 	/*connect ExtiLine13 to STOP,FWD,BWD button*/
 	AFIO->EXTICR[3] |= AFIO_EXTICR4_EXTI13_PB | AFIO_EXTICR4_EXTI13_PB | AFIO_EXTICR4_EXTI15_PB;
+	AFIO->EXTICR[0] |= AFIO_EXTICR1_EXTI0_PB | AFIO_EXTICR1_EXTI1_PB | AFIO_EXTICR1_EXTI2_PB;
+	AFIO->EXTICR[2] |= AFIO_EXTICR3_EXTI10_PB;
 	/*configure exti line*/
-	EXTI->IMR |= EXTI_IMR_MR13 | EXTI_IMR_MR14 | EXTI_IMR_MR15;
-	EXTI->RTSR |= EXTI_RTSR_TR13 | EXTI_RTSR_TR14 | EXTI_RTSR_TR15;
+	EXTI->IMR |= EXTI_IMR_MR13 | EXTI_IMR_MR14 | EXTI_IMR_MR15 | EXTI_IMR_MR0 | EXTI_IMR_MR1 | EXTI_IMR_MR2 |EXTI_IMR_MR10;
+	EXTI->RTSR |= EXTI_RTSR_TR13 |EXTI_RTSR_TR0 | EXTI_RTSR_TR1 | EXTI_RTSR_TR2 |EXTI_RTSR_TR10;
+	EXTI->FTSR |= EXTI_FTSR_TR14 | EXTI_FTSR_TR15;
 	NVIC_EnableIRQ(EXTI15_10_IRQn);
+	NVIC_EnableIRQ(EXTI0_IRQn);
+	NVIC_EnableIRQ(EXTI1_IRQn);
+	NVIC_EnableIRQ(EXTI2_IRQn);
 	
-	/**/
+	/*Initialize for extension output*/
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC,ENABLE);
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4 | GPIO_Pin_5;
@@ -200,11 +244,8 @@ void GPIO_Config(){
 	GPIO_Init(GPIOC,&GPIO_InitStructure);
 	
 	/**/
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC,ENABLE);
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
-	GPIO_Init(GPIOC,&GPIO_InitStructure);
+
+	
 }
 /*
 	inner timer

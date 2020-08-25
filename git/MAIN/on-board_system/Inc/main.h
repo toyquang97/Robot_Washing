@@ -32,7 +32,8 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "string.h"
+#include "stdint.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -47,7 +48,7 @@ extern "C" {
 
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
-
+#define RX_MAX_BUFFER_SIZE 8
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
@@ -98,10 +99,8 @@ void Error_Handler(void);
 #define S3_GPIO_Port GPIOB
 #define S4_Pin GPIO_PIN_10
 #define S4_GPIO_Port GPIOB
-#define S4_EXTI_IRQn EXTI15_10_IRQn
 #define S5_Pin GPIO_PIN_11
 #define S5_GPIO_Port GPIOB
-#define S5_EXTI_IRQn EXTI15_10_IRQn
 #define START_Pin GPIO_PIN_12
 #define START_GPIO_Port GPIOB
 #define START_EXTI_IRQn EXTI15_10_IRQn

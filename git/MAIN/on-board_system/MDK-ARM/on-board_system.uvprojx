@@ -338,7 +338,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32F103xE,USE_HAL_DRIVER,STM32F103xE</Define>
               <Undefine></Undefine>
-              <IncludePath>../Inc;../Drivers/STM32F1xx_HAL_Driver/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F1xx/Include;../Drivers/CMSIS/Include</IncludePath>
+              <IncludePath>../Inc;         ../Drivers/STM32F1xx_HAL_Driver/Inc;         ../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy;         ../Drivers/CMSIS/Device/ST/STM32F1xx/Include;         ../Drivers/CMSIS/Include</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -523,14 +523,14 @@
           <GroupName>Library</GroupName>
           <Files>
             <File>
-              <FileName>vnh3sp30.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\vnh3sp30.h</FilePath>
+              <FileName>driver_motor.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\driver_motor.c</FilePath>
             </File>
             <File>
-              <FileName>vnh3sp30.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\vnh3sp30.c</FilePath>
+              <FileName>driver_motor.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Src\driver_motor.h</FilePath>
             </File>
           </Files>
         </Group>
