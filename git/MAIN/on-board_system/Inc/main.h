@@ -49,6 +49,7 @@ extern "C" {
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
 #define RX_MAX_BUFFER_SIZE 8
+
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/

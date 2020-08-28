@@ -30,12 +30,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include "driver_motor.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+typedef struct {
+	int target;
+	int previous;
+	int real;
+} speed;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -64,6 +69,9 @@ uint8_t sensor12 = 0;
 uint8_t sensor35 = 0;
 uint8_t pre_sensor12 = 5;
 uint8_t pre_sensor35 = 5;
+speed Sp;
+uint8_t first_start = 0;
+
 int status = 0;							//bien trang thai cua robot:
 														/*
 														1: standing by khi nhan nut start
@@ -96,47 +104,65 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 		if(Rx_data[0]!='X'){
 			RX_buffer[Rx_Ind] = Rx_data[0];
 			Rx_Ind++;
-			//UART_SendStr("Done\t");
 		}
 		else{
 			Rx_Ind = 0;
 			uart_flag = 1;
 		}
-
 		if(RX_buffer[0]=='S'&RX_buffer[1]=='P'&RX_buffer[2]=='E'&RX_buffer[4]=='D'){
 				Target_Speed = (RX_buffer[5]-48)*100 + (RX_buffer[6]-48)*10 + (RX_buffer[7]-48);
-				Target_Speed = (Target_Speed > MAX_SPEED) ? MAX_SPEED : Target_Speed;  
+				Target_Speed = (Pre_Speed > MAX_SPEED) ? MAX_SPEED : Target_Speed;
 		}
+		else{
+				__NOP();
+		}
+
 		HAL_UART_Receive_IT(&huart4,Rx_data,1);
 	}
 }
 
-//tim2 interrupt handle void
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
-	
-	if(htim->Instance == htim2.Instance){
-		sensor12 = (HAL_GPIO_ReadPin(S1_GPIO_Port,S1_Pin) << 1) | HAL_GPIO_ReadPin(S2_GPIO_Port,S2_Pin);
-		sensor35 = (HAL_GPIO_ReadPin(S3_GPIO_Port,S3_Pin) << 1) | HAL_GPIO_ReadPin(S5_GPIO_Port,S5_Pin);
-		if(Real_Speed < Target_Speed){
-			Real_Speed++;
-		}
-		if(Real_Speed == Target_Speed){
-			Real_Speed = Target_Speed;
-			//HAL_TIM_Base_Stop_IT(&htim2);
-		}
-		if(Real_Speed > Target_Speed){
-			Real_Speed--;
-		}
-		
+	//inner timer take response to change speed of motor
+
+
+	//tim2 interrupt handle void
+	if(htim->Instance == htim2.Instance){ 
+
+				if(Real_Speed < Target_Speed){
+					Real_Speed++;
+				}
+				else if(Real_Speed == Target_Speed){
+					Real_Speed = Target_Speed;
+					
+				}
+				else {
+					Real_Speed--;
+				}
+				
+//		}
+
 	}
+	//timer 6 to read sensor
+	if(htim->Instance == htim6.Instance){
+		sensor12 = (HAL_GPIO_ReadPin(S1_GPIO_Port,S1_Pin) << 1) | HAL_GPIO_ReadPin(S2_GPIO_Port,S2_Pin);
+		sensor35 = (HAL_GPIO_ReadPin(S5_GPIO_Port,S5_Pin) << 1) | HAL_GPIO_ReadPin(S3_GPIO_Port,S3_Pin);
+	}
+	
+	
 
 }
+
+
 /* USER CODE END 0 */
 
 /**
   * @brief  The application entry point.
   * @retval int
   */
+
+/*
+
+*/
 int main(void)
 {
   /* USER CODE BEGIN 1 */
@@ -167,18 +193,21 @@ int main(void)
   MX_UART4_Init();
   MX_TIM3_Init();
   MX_TIM2_Init();
+  MX_TIM6_Init();
   /* USER CODE BEGIN 2 */
 	UART_SendStr("hello world!\n");
 	driver_init();
+
+	
 	HAL_UART_Receive_IT(&huart4,Rx_data,1);
-	HAL_TIM_Base_Start_IT(&htim2);
-	//HAL_TIM_Base_Start_IT(&htim2);
+	HAL_TIM_Base_Start_IT(&htim6);			//tim interrupt to read sensor 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-	Pre_Speed = 10;
-
+	Target_Speed = 10;
+	//Sp.previous = 10;
+	int count = 0;
   while (1)
   {
 		if(HAL_GPIO_ReadPin(START_GPIO_Port,START_Pin)){
@@ -187,89 +216,71 @@ int main(void)
 			while(HAL_GPIO_ReadPin(START_GPIO_Port,START_Pin));
 			status = 1;
 			UART_SendStr("Start");
+			//first_start = 1;
 		}
 		else{
 			if(status == 1){
+			
 				Real_Speed = 0;
-				Target_Speed = Pre_Speed;
 
-			/*Standing by Mode */		
-					//UART_SendStr("hello world!\n");
-					//UART_SendStr("wait for positioning\n");
-					//while(sensor==0b00001100 || sensor == 0b00000011 || sensor == 0b00001111)
-					//UART_SendStr("wait for command\n");
-					//wait for uart receive data to configure operation mode
 			}
-				/**/
-					
-//				if(uart_flag==1){
-//					//when receive buffer 
-//					HAL_Delay(50);
-//					uart_flag = 0;
-//					if(RX_buffer[0]=='S'&RX_buffer[1]=='P'&RX_buffer[2]=='E'&RX_buffer[4]=='D'){
-//							Target_Speed = (RX_buffer[5]-48)*100 + (RX_buffer[6]-48)*10 + (RX_buffer[7]-48);
-//							Target_Speed = (Target_Speed > MAX_SPEED) ? MAX_SPEED : Target_Speed;  
-//					}
-//				}
-				/**/	
-			else{
+			else if(status == 2 || status ==3){
 			/*Run Mode*/
+				HAL_TIM_Base_Start_IT(&htim2);			//timer to change speed of motors
 					if(status == 2){		//forward
-
+						
 						switch(sensor12){
-							case 1:						//sensor1 == 0 and sensor2 == 1
-								if(pre_sensor12 == 3){
-									Pre_Speed = Target_Speed/2;
+							case 2:						//sensor1 == 1 and sensor2 == 0
+								if(pre_sensor12 == 0){	//start decrease speed of motor
+									Pre_Speed = Target_Speed;
 									Target_Speed /=2;
 								}
-								else if(pre_sensor12 == 2){
-									
-								}
-								else{
-									
+								else if(pre_sensor12 == 3){		//STOP robot and wait for next command
+									Target_Speed = 0;
+									UART_SendStr("wait for next command\n");
 								}
 								break;
 							
-							case 2:						//sensor1 == 1 and sensor2 == 0
-								if(pre_sensor12 == 3){
-									if(Real_Speed < Pre_Speed/2){
+							case 1:						//sensor1 == 1 and sensor2 == 0
+								if(pre_sensor12 == 0){	
+									Target_Speed = Pre_Speed;
+								}
+								else{
+								
+								}
+								break;
+							
+							case 0:						//sensor1 == 0 and sensor2 == 0
+								if(pre_sensor12 == 5){		// first start operation
+										//Real_Speed = 0;
+										//Target_Speed = Pre_Speed;
+								}
+								else if(pre_sensor12 == 2){	// in  the middle of 2 edge 
+										if(Real_Speed > Target_Speed){
+											Target_Speed = Real_Speed;
+										}
+										else{
+											
+										}
+								}
+								else if(pre_sensor12 == 1){ 	// robot climb over the edge successfully
+										Pre_Speed  = 0;
+								}
+								else{
 										
-									}
-									
-								}
-								else if(pre_sensor12 == 0){
-								
-								}
-								else{
-								
 								}
 								break;
-							
-							case 3:						//sensor1 == 1 and sensor2 == 1
-								if(pre_sensor12 == 5){		//when first start operation
-									Target_Speed = Target_Speed;
-									
-								}
-								else if(pre_sensor12 == 1){	// in  the middle of 2 edge 
-									Target_Speed = Target_Speed;
 								
-								}
-								else if(pre_sensor12 == 2){ 	// robot climb over the edge successfully
-									Target_Speed = Target_Speed;
+							case 3:
+								if(pre_sensor12 == 2){
+									Pre_Speed = Target_Speed;
+									Target_Speed = -Target_Speed;
 								}
 								else{
 									
 								}
 								break;
 								
-							case 0:
-								if(pre_sensor12 == 1){
-								
-								}
-								else{
-								
-								}
-								break;
 							default:
 								break;
 						}
@@ -278,39 +289,88 @@ int main(void)
 						}
 					}
 					/****/
-					else if(status == 3){
+					else if(status == 3){			//backward
 						switch(sensor35){
-							case 1:
-								
+							case 2:						//sensor1 == 1 and sensor2 == 0
+								if(pre_sensor35 == 0){	//start decrease speed of motor
+									Pre_Speed = Target_Speed;
+									Target_Speed /=2;
+								}
+								else if(pre_sensor35 == 3){		//STOP robot and wait for next command
+									//Target_Speed = 0;
+									pre_sensor35 = 5;
+									UART_SendStr("wait for next command\n");
+								}
 								break;
-							case 2:
+							
+							case 1:						//sensor1 == 1 and sensor2 == 0
+								if(pre_sensor35 == 0){	
+									Target_Speed = Pre_Speed;
+								}
+								else{
 								
+								}
 								break;
-							case 3:
-								
-								break;
-							case 0:
-								
-								break;		
-						}
-					
+							
+							case 0:						//sensor1 == 0 and sensor2 == 0
+								if(pre_sensor35 == 5){		// first start operation
+										Real_Speed = 0;
+										//Target_Speed = Pre_Speed;
+								}
+								else if(pre_sensor35 == 2){	// in  the middle of 2 edge 
+										if(Real_Speed < Target_Speed){
+											Target_Speed = Real_Speed;
+										}
+										else{
 
+										}
+								}
+								else if(pre_sensor35 == 1){ 	// robot climb over the edge successfully
+										Pre_Speed  = 0;
+								}
+								else{
+										
+								}
+								break;
+								
+							case 3:
+								if(pre_sensor35 == 2){
+									Pre_Speed = Target_Speed;
+									Target_Speed = -Target_Speed;
+								}
+								else{
+									__NOP();
+								}
+								break;
+								
+							default:
+								break;
+						}
+						if(sensor35 != pre_sensor35){
+							pre_sensor35 = sensor35;
+						}
+						
 					}
 					
-					else{
+					else{		//
 					
 					}
 					/****/
 					driver_run(Real_Speed);
 			}
+			
+			
+			else{
+				__NOP();
+			}
 		}
 		
     /* USER CODE END WHILE */
 
-		/* USER CODE BEGIN 3 */
+    /* USER CODE BEGIN 3 */
 		
   }
-		/* USER CODE END 3 */
+  /* USER CODE END 3 */
 }
 
 /**

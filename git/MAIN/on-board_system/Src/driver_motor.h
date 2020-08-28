@@ -11,7 +11,7 @@
 #define TIM_CHANNEL_MOTOR_0 TIM_CHANNEL_1
 #define TIM_CHANNEL_MOTOR_1 TIM_CHANNEL_MOTOR_0
 #define MAX_SPEED 				50
-
+#define DEFAULT_SPEED_VALUE 10
 
 void driver_init(void);
 /**/

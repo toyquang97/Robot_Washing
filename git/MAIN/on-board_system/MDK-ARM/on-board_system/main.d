@@ -35,5 +35,6 @@ on-board_system\main.o: ../Inc/usart.h
 on-board_system\main.o: ../Inc/gpio.h
 on-board_system\main.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
 on-board_system\main.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdlib.h
+on-board_system\main.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdbool.h
 on-board_system\main.o: ../Src/driver_motor.h
 on-board_system\main.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\math.h
