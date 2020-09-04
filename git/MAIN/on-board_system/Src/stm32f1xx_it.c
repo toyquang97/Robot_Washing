@@ -61,8 +61,9 @@ extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim6;
 extern UART_HandleTypeDef huart4;
 /* USER CODE BEGIN EV */
-extern uint8_t sensor;
-extern int status ;							
+extern uint8_t sensor12;
+extern uint8_t sensor35;
+extern int status ;					
 extern volatile int Target_Speed ;						//bien gia tri van toc duoc cap cho toc do robot
 extern volatile int Real_Speed ;						//bien gia tri van toc duoc cap cho toc do robot
 extern volatile int Pre_Speed;
@@ -229,32 +230,47 @@ void EXTI15_10_IRQHandler(void)
 		UART_SendStr("\nStop");
 		//status = 0;
 		if(status !=0){
-			Pre_Speed = Target_Speed;
-			Target_Speed = 0;
+				Pre_Speed = Target_Speed;
+				Target_Speed = 0;
+		}
+		else{
+				__NOP();
 		}
 	}
 	//when detect forward button
 	if(__HAL_GPIO_EXTI_GET_IT(FORWARD_Pin)){
 		if(status != 0){
-				UART_SendStr("\nforward"); 
-				if(Target_Speed < 0)
-					Target_Speed = -Target_Speed;
+			if(sensor12==0){
+				UART_SendStr("\nForward"); 
+				Target_Speed = (Target_Speed < 0)? -Target_Speed : Target_Speed;
 				status = 2;
-			
+			}
+			else{
+				//invalid position
+				status = 4;
+				UART_SendStr("Invalid Position\n");
+			}
+		}
+		else{
+			__NOP();	
 		}
 	}
 	//when detect backward button
 	if(__HAL_GPIO_EXTI_GET_IT(BACKWARD_Pin)){
 		if(status != 0){
-			UART_SendStr("\nbackward");
-		
-				if(Target_Speed > 0)
-					Target_Speed = -Target_Speed;
-				else{
-					Target_Speed = Target_Speed;
-				}
+			if(sensor35 == 0){
+				UART_SendStr("\nBackward");
+				Target_Speed = (Target_Speed > 0) ? -Target_Speed : Target_Speed;
 				status = 3;
-			
+			}
+			else{
+				//invalid position
+				status = 4;
+				UART_SendStr("Invalid Position\n");				
+			}
+		}
+		else{
+			__NOP();
 		}
 	}
   /* USER CODE END EXTI15_10_IRQn 0 */
