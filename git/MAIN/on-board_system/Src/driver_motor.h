@@ -12,7 +12,8 @@
 #define TIM_CHANNEL_MOTOR_1 TIM_CHANNEL_MOTOR_0
 #define MAX_SPEED 				50
 #define DEFAULT_SPEED_VALUE 10
-
+#define EDGE_SPEED_FORWARD 		5
+#define EDGE_SPEED_BACKWARD 	-5
 void driver_init(void);
 /**/
 void driver_run(int);

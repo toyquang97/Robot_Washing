@@ -24,6 +24,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "usart.h"
+#include <stdbool.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -67,6 +68,7 @@ extern int status ;
 extern volatile int Target_Speed ;						//bien gia tri van toc duoc cap cho toc do robot
 extern volatile int Real_Speed ;						//bien gia tri van toc duoc cap cho toc do robot
 extern volatile int Pre_Speed;
+extern bool stop_bit;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -230,8 +232,10 @@ void EXTI15_10_IRQHandler(void)
 		UART_SendStr("\nStop");
 		//status = 0;
 		if(status !=0){
-				Pre_Speed = Target_Speed;
-				Target_Speed = 0;
+//				Pre_Speed = Target_Speed;
+//				Target_Speed = 0;
+				status = 1;
+				stop_bit = true;
 		}
 		else{
 				__NOP();
@@ -242,8 +246,9 @@ void EXTI15_10_IRQHandler(void)
 		if(status != 0){
 			if(sensor12==0){
 				UART_SendStr("\nForward"); 
-				Target_Speed = (Target_Speed < 0)? -Target_Speed : Target_Speed;
+				Target_Speed = (Target_Speed < 0) ? -Target_Speed : Target_Speed;
 				status = 2;
+
 			}
 			else{
 				//invalid position

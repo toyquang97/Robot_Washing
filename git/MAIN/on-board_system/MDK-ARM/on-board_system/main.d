@@ -38,3 +38,4 @@ on-board_system\main.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdlib.h
 on-board_system\main.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdbool.h
 on-board_system\main.o: ../Src/driver_motor.h
 on-board_system\main.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\math.h
+on-board_system\main.o: ../Src/Flash.h

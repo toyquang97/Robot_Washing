@@ -532,6 +532,16 @@
               <FileType>5</FileType>
               <FilePath>..\Src\driver_motor.h</FilePath>
             </File>
+            <File>
+              <FileName>Flash.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\Flash.c</FilePath>
+            </File>
+            <File>
+              <FileName>Flash.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Src\Flash.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

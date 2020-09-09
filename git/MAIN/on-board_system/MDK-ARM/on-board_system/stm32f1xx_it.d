@@ -31,3 +31,4 @@ on-board_system\stm32f1xx_it.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_ha
 on-board_system\stm32f1xx_it.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\string.h
 on-board_system\stm32f1xx_it.o: ../Inc/stm32f1xx_it.h
 on-board_system\stm32f1xx_it.o: ../Inc/usart.h
+on-board_system\stm32f1xx_it.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdbool.h

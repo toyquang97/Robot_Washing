@@ -32,6 +32,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include "driver_motor.h"
+#include "Flash.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -70,7 +71,7 @@ volatile int Pre_Speed = 0;
 int temp_speed;													//bien trung gian de luu gia tri cua toc do robot
 uint8_t sensor12;
 uint8_t sensor35;
-bool edge_mode = false;									//bien trang thai dang leo mep
+bool stop_bit = false;									//bien trang thai dang leo mep
 int status = 0;							//bien trang thai cua robot:
 														/*
 														1: standing by khi nhan nut start
@@ -137,10 +138,12 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 			__NOP();
 		}
 		HAL_UART_Receive_IT(&huart4,Rx_data,1);
+		
 	}
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
+	uint8_t c;
 	//inner timer take response to change speed of motor
 
 	//tim2 interrupt handle void
@@ -151,14 +154,21 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 				else if(Real_Speed == Target_Speed){
 					Real_Speed = Target_Speed;
 				}
-				else {
+				else if(Real_Speed > Target_Speed){
 					Real_Speed--;
+				}
+				else{
+					__NOP();
 				}
 	}
 	//timer 6 to read sensor
 	if(htim->Instance == htim6.Instance){
 		sensor12 = (HAL_GPIO_ReadPin(S1_GPIO_Port,S1_Pin) << 1) | HAL_GPIO_ReadPin(S2_GPIO_Port,S2_Pin);
 		sensor35 = (HAL_GPIO_ReadPin(S5_GPIO_Port,S5_Pin) << 1) | HAL_GPIO_ReadPin(S3_GPIO_Port,S3_Pin);
+		c++;
+		if(c==100){
+			Flash_Write_Int(DATA_ADDRESS,Target_Speed);
+		}
 	}
 	//
 
@@ -215,9 +225,22 @@ int main(void)
   /* USER CODE END 2 */
 
   /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
-	Target_Speed = DEFAULT_SPEED_VALUE;
-
+  /* USER CODE BEGIN WHILE */				
+	static uint8_t pre_sensor12;	
+	static uint8_t pre_sensor35;
+	Real_Speed = 0;
+	uint32_t temp ;
+	/*Read data store from flash memory*/
+	temp = Flash_Read_Int(DATA_ADDRESS);
+	if(temp == 0)
+	{
+		Target_Speed = DEFAULT_SPEED_VALUE;
+	}
+	else{
+		
+	}
+	/**/
+	
   while (1)
   {
 		if(HAL_GPIO_ReadPin(START_GPIO_Port,START_Pin)){
@@ -226,15 +249,32 @@ int main(void)
 			while(HAL_GPIO_ReadPin(START_GPIO_Port,START_Pin));
 			status = 1;
 			UART_SendStr("Start\n");
+			pre_sensor12 = pre_sensor35 = 5;
 		}
 		else{
 			if(status == 1){
 				//standing by mode
-				Real_Speed = 0;
+				if(stop_bit){
+					Pre_Speed = Target_Speed;
+					Target_Speed = 0;
+					while(Real_Speed!=0);
+					if(Real_Speed == 0){
+						Target_Speed = Pre_Speed;
+						HAL_TIM_Base_Stop_IT(&htim2);
+						stop_bit = false;
+						pre_sensor12 = pre_sensor35 = 5;
+					}
+					else{
+						__NOP();
+					}
+				}
+				else{
+					__NOP();
+				}
 				/**/	
 			}
 			else if(status == 2){
-				static uint8_t pre_sensor12 = 5;	
+
 				/*Run Mode*/					
 				/*warining if place robot incorrectly*/
 				
@@ -243,34 +283,54 @@ int main(void)
 						
 							case 0:						//sensor1 == 0 and sensor2 == 0
 									/*run*/
-									if(pre_sensor12 == 5){
+									if(pre_sensor12 == 5){								//run after set up successfully
 										HAL_TIM_Base_Start_IT(&htim2);			//start increase real_speed
 									}
-									else if(pre_sensor12 == 2){
-										
+									else if(pre_sensor12 == 2){						//
+										if(Real_Speed != Target_Speed){
+											Target_Speed = Real_Speed;
+										}
+										else{
+											__NOP();
+										}
+
 									}
 									else if(pre_sensor12 == 1){
-										
+										while(sensor35==0);
+										Target_Speed = Pre_Speed;
 									}
 									else{
-										
+										__NOP();
 									}
 									break;
 		
 							case 2:						//sensor1 == 1 and sensor2 == 0
-									if(pre_sensor12 == 0){		//when robot locate at the edge of panel
-										Target_Speed /=2;				//			
+									if(pre_sensor12 == 0){										//when robot locate at the edge of panel and aimed to climb the edges of 2 panel 
+										Pre_Speed = Target_Speed;								//store value of speed 
+										Target_Speed = EDGE_SPEED_FORWARD;			//			
 									}
 									else{
-									
+										__NOP();
 									}
 									break;
 								
 							case 1:						//sensor1 == 0 and sensor2 == 1
-
+//									if(pre_sensor12 == 0){
+//										Target_Speed = Pre_Speed;
+//									}
+//									else{
+//										__NOP();
+//									}
 									break;
-							case 3:		
-									
+							case 3:						//sensor1 == 1 and sensor2 == 1 (stop)
+									if(pre_sensor12 == 2){			//ready to fall down
+										Target_Speed = 0;					
+										while(Real_Speed!=0);			//wait until real_speed = 0, change status of robot from run forward to invalid position
+										status = 4;
+									}
+									else {
+										__NOP();
+									}
 									break;								
 							default:
 									//////	
@@ -282,40 +342,75 @@ int main(void)
 				}
 					/****/
 				else if(status == 3){
-					static uint8_t pre_sensor35 = 5;
 					
-					switch(sensor35){
-						case 0:
+					switch(sensor35){				
+						case 0:										//sensor5 == 0 and sensor3 == 0
 							if(pre_sensor35 == 5){
 								HAL_TIM_Base_Start_IT(&htim2);
+							}
+							else if(pre_sensor35 == 2){
+										if(Real_Speed != Target_Speed){
+											Target_Speed = Real_Speed;
+										}
+										else{
+											__NOP();
+										}
+							}
+							else if(pre_sensor35 == 1){
+								Target_Speed = Target_Speed;
 							}
 							else {
 								__NOP();
 							}
 							break;
-						case 2:
+						case 2:										//sensor5 == 1 and sensor3 == 0
+							if(pre_sensor35 == 0){
+								Pre_Speed = Target_Speed;
+								Target_Speed = EDGE_SPEED_BACKWARD;					
+							}
+							else{
+								__NOP();
+							}
 							break;
-						case 1:
+						case 1:										//sensor5 == 0 and sensor3 == 1
+							if(pre_sensor35 == 0){
+								Target_Speed = Pre_Speed;
+							}
+							else{
+								__NOP();
+							}
 							break;
-						case 3:
+						case 3:										//sensor5 == 1 and sensor3 == 1
+							if(pre_sensor35 == 2){
+								Target_Speed = 0;
+								while(Real_Speed!=0);						//wait until real_speed = 0, change status of robot from run forward to invalid position
+								status = 4;
+							}
+							else{	
+								__NOP();
+							}
 							break;
+							
 						default:
+							////
 							break;
-						
-					/****/
-						pre_sensor35 = (sensor35!=pre_sensor35) ? sensor35 : pre_sensor35;
 					}
+						/****/
+					pre_sensor35 = (sensor35!=pre_sensor35) ? sensor35 : pre_sensor35;
+						/****/
 				}	
 				else if(status == 4){
-					Real_Speed = 0;
+					while(HAL_TIM_Base_Stop_IT(&htim2)!=HAL_OK);
+					//Target_Speed = Pre_Speed;
 				}
 				else{		//
 						__NOP();
 				}
 					/****/
 				driver_run(Real_Speed);
-			}
-		
+					/****/
+				
+			}	
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

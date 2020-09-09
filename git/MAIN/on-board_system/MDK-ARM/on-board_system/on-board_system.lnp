@@ -24,6 +24,7 @@
 "on-board_system\stm32f1xx_hal_exti.o"
 "on-board_system\system_stm32f1xx.o"
 "on-board_system\driver_motor.o"
+"on-board_system\flash.o"
 --library_type=microlib --strict --scatter "on-board_system\on-board_system.sct"
 --summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
 --info sizes --info totals --info unused --info veneers

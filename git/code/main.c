@@ -81,6 +81,7 @@ void EXTI2_IRQHandler(void){
 	}
 }
 
+
 void TIM2_IRQHandler(void){
 	if(TIM2->SR&TIM_SR_UIF){
 		if(Real_Vel < Velocity){
@@ -98,7 +99,28 @@ void TIM2_IRQHandler(void){
 	}
 }
 
+uint32_t readFlash(u32 addr){
+	u32* data = (u32*) addr;
+	return *data;
+}
 
+void Write_Buff_To_Internal_Flash(u8 data_in[],u32 start_addr,unsigned int len){
+	unsigned int i;
+	if((start_addr - 0x8000000)%0x800==0){
+		FLASH_UnlockBank1();
+		FLASH_ErasePage(start_addr);
+	}
+	for(i = 0; i < len;i++){
+		FLASH_ProgramWord(start_addr+4*i,data_in[i]);
+	}
+}
+
+void Read_Buff_From_Internal_Flash(u8 data_out[], u32 start_addr,unsigned int len){
+	unsigned int i ;
+	for(i = 0; i < len;i++){
+		data_out[i] = (unsigned char)(readFlash(start_addr+4*i));
+	}
+}
 int main(){
 
 	SystemInit();
@@ -141,43 +163,43 @@ int main(){
 	Velocity = 0;
 	driver_run(10);
 	while(1){
-		if(GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_12)==1){
-			Delay(20);
-			while(GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_12));
-			UART_SendStr("Start\n");
-			sensor = 0b00001111;
-			temp = 1;
-		}
-		else{
-			if(Real_Vel != Pre_Vel){
-				UART_SendInt(Real_Vel);
-				UART_SendChar('\n');
-				Pre_Vel = Real_Vel;
-			}
+//		if(GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_12)==1){
+//			Delay(20);
+//			while(GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_12));
+//			UART_SendStr("Start\n");
+//			sensor = 0b00001111;
+//			temp = 1;
+//		}
+//		else{
+//			if(Real_Vel != Pre_Vel){
+//				UART_SendInt(Real_Vel);
+//				UART_SendChar('\n');
+//				Pre_Vel = Real_Vel;
+//			}
 
-			if(temp > 1){
-				if(temp == 2 ){
-						
-				}
-				if(temp == 3){
-					
-				}
-				
-				
-		}
-			/**/
-			if(uart_flag == 1){
-				Delay(50);
-				if((RX_Buffer[0]=='S')&(RX_Buffer[1]=='P')&(RX_Buffer[2]=='E')&(RX_Buffer[4]=='D')){
-					Velocity = (RX_Buffer[5]-48)*100 + (RX_Buffer[6]-48)*10 + (RX_Buffer[7]-48);
-					UART_SendStr("Result=");
-					UART_SendInt(Velocity);
-					UART_SendChar('\n');	
-				}
-				uart_flag = 0;
-			}
-		}
-	
+//			if(temp > 1){
+//				if(temp == 2 ){
+//						
+//				}
+//				if(temp == 3){
+//					
+//				}
+//				
+//				
+//		}
+//			/**/
+//			if(uart_flag == 1){
+//				Delay(50);
+//				if((RX_Buffer[0]=='S')&(RX_Buffer[1]=='P')&(RX_Buffer[2]=='E')&(RX_Buffer[4]=='D')){
+//					Velocity = (RX_Buffer[5]-48)*100 + (RX_Buffer[6]-48)*10 + (RX_Buffer[7]-48);
+//					UART_SendStr("Result=");
+//					UART_SendInt(Velocity);
+//					UART_SendChar('\n');	
+//				}
+//				uart_flag = 0;
+//			}
+//		}
+		
 	}
 }
 
